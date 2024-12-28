@@ -1,0 +1,17 @@
+html, body {
+    touch-action: manipulation;
+}
+
+body{
+    background-color: rgb(55, 83, 124);
+    margin: 0;
+    padding: .5vw;
+}
+
+button{
+    background-color: #eee;
+}
+
+button:disabled{
+    background-color: grey;
+}
