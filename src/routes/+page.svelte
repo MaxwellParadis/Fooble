@@ -47,6 +47,7 @@
     
     export let line = 0;
     export let playing = true;
+    export let win = true;
 
     export let onKeyPress = (letter:string) => {
         fooble[line].push(letter);
@@ -61,9 +62,9 @@
     };
 
     export let onGo = () => {
-        let canWin = true;
+        let gameOver = true;
         daily.forEach((x,i) => {
-            if(x != fooble[line][i]) canWin = false;
+            if(x != fooble[line][i]) gameOver = false;
         });
 
         fooble[line].forEach((x,i) => {
@@ -72,9 +73,13 @@
 
         nope = nope;
         //console.log(nope);
+        if(line == 5 && !gameOver) {
+            gameOver = true;
+            win = false;
+        }
 
-        if(canWin){
-            console.log("WINNER!")
+        if(gameOver){
+            
             score = daily.length*100*(6-line); //INCLUDES BONUS COMPLETION SCORE OF EXTRA LINE
             console.log(score);
             for(let l = 0; l <= line; l++){
@@ -94,11 +99,12 @@
                     }                 
                 });
             }
+            if(!win) score = score/2;
             line = line + 1;
             playing = false;
             let data = {
                 "username": username,
-                "line": line,
+                "line": win ? line : null,
                 "score": score,
             }
             axios.post('/api/score', data).then((res) => {
@@ -199,7 +205,10 @@
 </div>
 
 {#if !playing}
-    <h1>You Did it! Score:{score}</h1>
+    <h1>{win ? "You Did it!" : "Better Luck Next Time!"} Score:{score}</h1>
+{/if}
+{#if !playing && !win}
+    <h1>{daily.join("")}</h1>
 {/if}
 
 <div class="keyboard">
