@@ -64,6 +64,7 @@ async function makeWord(date) {
 }
 
 let dailyWord = "PLACEHOLD";
+let pScore = [];
 
 async function initWord() {
   let word = await getWord(getDay(0));
@@ -73,7 +74,21 @@ async function initWord() {
   if(!word1[0]) makeWord(getDay(1));
     
   dailyWord = word[0].word;
+  console.log(dailyWord);
 };
+
+async function prevScore(){
+  let day = getDay(-1);
+  let query = "SELECT * FROM fooble.beta_sbx WHERE day = ? ORDER BY score DESC LIMIT 10;";
+  let params = [day];
+  let options = {hints: ['int']};
+  try {
+    let {rows} = await client.execute(query, params, options);
+    pScore = rows;
+  } catch (err) {
+    console.error('Prev Score Error:', err);
+  }
+} 
 
 
 function wait(seconds) {
@@ -90,6 +105,7 @@ waiting();
 //DetermineDailyWord
 setInterval(() => {
   initWord();
+  prevScore();
 }, 60 * 60 * 1000);
 
 
@@ -113,7 +129,11 @@ app.get("/api/scoreboard", async (req, res) => {
     try {
       let {rows} = await client.execute(query, params, options);
       //console.log(rows);
-      res.json(rows);
+      let data = {
+        'today': rows,
+        'prev': pScore,
+      }
+      res.json(data);
     } catch (err) {
       console.error('Write error:', err);
       console.log('Failed to write data');

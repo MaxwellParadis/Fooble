@@ -1,31 +1,53 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import axios from "axios";
 
-    let username:string;
+    let username:string = '';
+
+    let start:boolean = false;
 
     let promptInput:string;
 
     let score:number = 0;
 
     let scoreboard:any[] = [];
+    let pscoreboard:any[] = [];
 
     export let daily = "FRIED EGG".split("");
 
-    axios.get('/api/word').then((res) => {
-        daily = res.data.split("");;  // If response is a string, x will be the string value
-        //console.log(daily);  // Outputs the string, for example: "Test Word"
-        //daily = "FRIED EGG".split("");
-    })
-    .catch((error) => {
-        console.error('Error fetching data:', error);
-    });
+    async function gameSetup(){
+        await axios.get('/api/word').then((res) => {
+            daily = res.data.split("");;  // If response is a string, x will be the string value
+            //console.log(daily);  // Outputs the string, for example: "Test Word"
+            //daily = "FRIED EGG".split("");
+        })
+        .catch((error) => {
+            if(error.code != 'ERR_INVALID_URL') console.error('Error fetching data:', error);
+        });
+
+        let cacheData = localStorage.getItem('gameState');
+        let cacheGame = cacheData ? JSON.parse(cacheData) : { 
+            daily: ['N','A'],
+        };
+        if(cacheGame.daily.join('') == daily.join('') ){
+            fooble = cacheGame.fooble;
+            line = cacheGame.line;
+            playing = cacheGame.playing;
+            win = cacheGame.win;
+            nope = cacheGame.nope;
+            if(!playing) score = cacheGame.score;
+        };
+        //console.log(cacheGame.daily.join(''), daily.join(''));
+    }
+    
 
     axios.get('/api/scoreboard').then((res) => {
-        scoreboard = res.data;
+        scoreboard = res.data.today;
+        pscoreboard = res.data.prev;
         //console.log(res.data);  // Outputs the string, for example: "Test Word"
     })
     .catch((error) => {
-        console.error('Error fetching scoreboard:', error);
+        if(error.code != 'ERR_INVALID_URL') console.error('Error fetching scoreboard:', error);
     });
 
     export let rows = [
@@ -48,6 +70,12 @@
     export let line = 0;
     export let playing = true;
     export let win = true;
+
+    let onEnter = (pI:string) => {
+        username = pI;
+        localStorage.setItem('username', username);
+        start = true;
+    };
 
     export let onKeyPress = (letter:string) => {
         fooble[line].push(letter);
@@ -117,6 +145,16 @@
             line = line + 1;
             console.log("Try Again");
         };
+        let gameState = {
+            'fooble': fooble,
+            'line': line,
+            'playing': playing,
+            'daily': daily,
+            'nope' : nope,
+            'win' : win,
+            'score' : score
+        } 
+        localStorage.setItem('gameState', JSON.stringify(gameState));
     };
 
     function checkOthers(s:string,l:number, i:number):Boolean{
@@ -163,11 +201,28 @@
         return("cube grey")
     };
 
+    onMount(() => { 
+        username = localStorage.getItem('username') || '';
+        if(username.length > 2) promptInput = username;
+
+        gameSetup();
+    });
+
 </script>
 
-{#if username === undefined}
+{#if start === false}
     <div class="fullscreen-prompt">
         <div class="prompt-content">
+            <h1 class="prompt-text">FOOBLE BETA</h1>
+
+            <p class="prompt-text">
+                Welcome! This is a Foo-Bar Food Wordle-like game.  There will be occasional updates and improvements.  Currently there should be nearly enough words in the system for random selection through the end of 2025.  Some will be easy, and some will be a bit more foreign for the challenge.
+            </p>
+
+            <p class="prompt-text">
+                Rules: Find the food of the Day! Spelling is not checked. Squares turn black resulting in lost points when your guess is longer than the answer.  Spaces may be necessary.
+            </p>
+
             <h1 class="prompt-text">Your Username</h1>
             <input
                 type="text"
@@ -176,17 +231,14 @@
                 bind:value={promptInput}
                 class="prompt-input"
             />
-            <button disabled={promptInput == undefined || promptInput.length < 3} class="prompt-input" on:click={() => username = promptInput}>
+            <button disabled={promptInput == undefined || promptInput.length < 3} class="prompt-input" on:click={() => onEnter(promptInput)}>
                 ENTER
             </button>
         </div>
     </div>
 {/if}
 
-
-<h1>FOOBLE BETA</h1>
-
-{#if username != undefined}
+{#if username != undefined || start == false}
     <div class="body">
         <h2>Good Luck {username}!</h2>
     </div>
@@ -228,26 +280,43 @@
         </div>
 </div>
 
-<p>
-    Rules: Find the Food of the Day! Spelling is not Checked, Squares turn black taking away points when your guess is longer than the Answer, and Spaces may be necessary.
-</p>
-
-<h2>Daily High Scores</h2>
-<div>
-    <div class='scoreTile underline'>
-        <div class="username">Player</div>
-        <div class="score">Try</div>
-        <div class="score">Score</div>  
-    </div>
-    {#each scoreboard as sc}
-        <div class='scoreTile'>
-            <div class="username">{sc.username}</div>
-            <div class="score">{sc.line}</div>
-            <div class="score">{sc.score}</div>  
+<div class='scores'>
+    <div class="fifty">
+        <h2>Todays Top Scores</h2>
+        <div>
+            <div class='scoreTile underline'>
+                <div class="username">Player</div>
+                <div class="score">Try</div>
+                <div class="score">Score</div>  
+            </div>
+            {#each scoreboard as sc}
+                <div class='scoreTile'>
+                    <div class="username">{sc.username}</div>
+                    <div class="score">{sc.line}</div>
+                    <div class="score">{sc.score}</div>  
+                </div>
+            {/each}
         </div>
-    {/each}
-</div>
+    </div>
 
+    <div class="fifty">
+        <h2>Prev Top Scores</h2>
+        <div>
+            <div class='scoreTile underline'>
+                <div class="username">Player</div>
+                <div class="score">Try</div>
+                <div class="score">Score</div>  
+            </div>
+            {#each pscoreboard as sc}
+                <div class='scoreTile'>
+                    <div class="username">{sc.username}</div>
+                    <div class="score">{sc.line}</div>
+                    <div class="score">{sc.score}</div>  
+                </div>
+            {/each}
+        </div>
+    </div>
+</div>
 
 <style>
 
@@ -255,6 +324,17 @@
         font-family: "Roboto", sans-serif;
         text-align: center;
         color: white;
+    }
+
+    .scores {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .fifty {
+        text-align: center;
+        flex: 1;
     }
 
     .keyboard {
