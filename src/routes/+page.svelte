@@ -216,14 +216,15 @@
             <h1 class="prompt-text">FOOBLE BETA</h1>
 
             <p class="prompt-text">
-                Welcome! This is a Foo-Bar Food Wordle-like game.  There will be occasional updates and improvements.  Currently there should be nearly enough words in the system for random selection through the end of 2025.  Some will be easy, and some will be a bit more foreign for the challenge.
+                Welcome! This is a Foo(d)-Bar Wordle-like game.  There will be occasional updates and improvements.  Currently there are nearly enough words in the system for random selection through the end of 2025.  Some will be easy, and some will be a bit more foreign introducing some difficulty.
             </p>
 
             <p class="prompt-text">
                 Rules: Find the food of the Day! Spelling is not checked. Squares turn black resulting in lost points when your guess is longer than the answer.  Spaces may be necessary.
             </p>
-
+            
             <h1 class="prompt-text">Your Username</h1>
+    
             <input
                 type="text"
                 maxlength="16"
@@ -231,7 +232,7 @@
                 bind:value={promptInput}
                 class="prompt-input"
             />
-            <button disabled={promptInput == undefined || promptInput.length < 3} class="prompt-input" on:click={() => onEnter(promptInput)}>
+            <button disabled={promptInput == undefined || promptInput.length < 3} class="prompt-input prompt-button" on:click={() => onEnter(promptInput)}>
                 ENTER
             </button>
         </div>
@@ -282,7 +283,7 @@
 
 <div class='scores'>
     <div class="fifty">
-        <h2>Todays Top Scores</h2>
+        <h2>Todays Top 10</h2>
         <div>
             <div class='scoreTile underline'>
                 <div class="username">Player</div>
@@ -300,7 +301,7 @@
     </div>
 
     <div class="fifty">
-        <h2>Prev Top Scores</h2>
+        <h2>Last Top 10</h2>
         <div>
             <div class='scoreTile underline'>
                 <div class="username">Player</div>
@@ -433,31 +434,43 @@
         background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
         display: flex;
         justify-content: center;
-        align-items: center;
         z-index: 1000; /* Ensure it's on top of other elements */
     }
 
     .prompt-content {
+        display: flex;
+        flex-direction: column;
         background: white;
         width: 80vw;
         padding: 2rem;
+        margin: 1rem;
+        margin-bottom: auto;
         border-radius: 10px;
         text-align: center;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .prompt-text {
-        color: rgb(55, 83, 124);
+        color: rgb(40, 60, 80);
     }
 
     .prompt-input {
-        color: rgb(55, 83, 124);
+        color:rgb(40, 60, 80);
         border:1px solid rgb(55, 83, 124);
         margin-bottom: 1rem;
         padding: 0.5rem 1rem;
         border-radius: 5px;
         cursor: pointer;
         min-width: 50vw;
+    }
+
+    .prompt-button {
+        background-color: rgb(40, 60, 80);
+        color: white;
+    }
+
+    .prompt-button:disabled {
+        background-color: grey;
     }
 
     .overgap {
