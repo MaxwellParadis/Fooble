@@ -101,6 +101,8 @@ async function waiting() {
 
 waiting();
 
+initWord();
+prevScore();
 
 //DetermineDailyWord
 setInterval(() => {
