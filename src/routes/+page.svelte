@@ -4,6 +4,10 @@
 
     let username:string = '';
 
+    let endKnown = false;
+
+    let checkGo = false;
+
     let start:boolean = false;
 
     let promptInput:string;
@@ -88,6 +92,19 @@
         //console.log(fooble);
         fooble = fooble;
     };
+
+    export let goCheck = () =>{
+        if(fooble[line].length == daily.length) {
+            onGo();
+        }else{
+            checkGo = true;
+        }
+    };
+
+    export let okayGo = () =>{
+        checkGo = false;
+        onGo();
+    }
 
     export let onGo = () => {
         let gameOver = true;
@@ -194,7 +211,10 @@
     export let getColor:(l: number, i: number, s: string) => string = (l, i, s) => {
         //console.log(l, i, s);
         if(l >= line) return("cube");
-        if(i >= daily.length) return("cube black");
+        if(i >= daily.length) {
+            endKnown = true;
+            return("cube black");
+        }
         if(!daily.includes(s)) return("cube grey");
         if(s == daily[i]) return("cube green");
         if(checkOthers(s,l,i)) return("cube yellow");
@@ -216,11 +236,15 @@
             <h1 class="prompt-text">FOOBLE BETA</h1>
 
             <p class="prompt-text">
-                Welcome! This is a Foo(d)-Bar Wordle-like game.  There will be occasional updates and improvements.  Currently there are nearly enough words in the system for random selection through the end of 2025.  Some will be easy, and some will be a bit more foreign introducing some difficulty.
+                Welcome! This is a Foo(d)Bar Wordle-like game.  This project is an experiment working with Svelte and ScyllaDB.  At its current state its very low maintainance and I plan to support it for the forseable future.  If you know me, feel free to make suggestions for new features and improvements.  While shared primarily with some friends and family, all are welcome so feel free to challenge your friends to beat your score.
             </p>
 
             <p class="prompt-text">
-                Rules: Find the food of the Day! Spelling is not checked. Squares turn black resulting in lost points when your guess is longer than the answer.  Spaces may be necessary.
+                Rules: Find the food of the Day! Spelling is not checked. Squares turn black resulting in lost points when your guess is longer than the answer.  Spaces may be necessary.<br>
+                Green: +100<br>
+                Yellow: +50<br>
+                Black: -100<br>
+                Grey: 0
             </p>
             
             <h1 class="prompt-text">Your Username</h1>
@@ -234,6 +258,32 @@
             />
             <button disabled={promptInput == undefined || promptInput.length < 3} class="prompt-input prompt-button" on:click={() => onEnter(promptInput)}>
                 ENTER
+            </button>
+
+            <a href="https://studio.paradisbend.com">
+                <p class="prompt-text">
+                    Created By Paradis Bend Studio
+                </p>
+            </a>
+        </div>
+    </div>
+{/if}
+
+{#if checkGo === true}
+    <div class="fullscreen-prompt">
+        <div class="prompt-content">
+            <h1 class="prompt-text">Are You Sure?</h1>
+
+            <p class="prompt-text">
+                You have not used all squares that you know are required to get the correct word.
+            </p>
+
+            <button class="prompt-input prompt-button" on:click={() => {checkGo = false}}>
+                GO BACK
+            </button>
+
+            <button class="prompt-input prompt-button" on:click={() => okayGo()}>
+                CONFIRM
             </button>
         </div>
     </div>
@@ -277,7 +327,7 @@
         <div class="row overgap">
             <button class="key grow" disabled={!playing} on:click={() => onDel()}>Delete</button>
             <button class="key grow" disabled={!playing || nope.includes(" ")} on:click={() => onKeyPress(" ")}>Space</button>
-            <button class="key grow" disabled={!playing} on:click={() => onGo()}>Submit</button>
+            <button class="key grow" disabled={!playing || fooble[line].length < 1} on:click={() => (endKnown ? goCheck() : onGo()) }>Submit</button>
         </div>
 </div>
 
@@ -319,6 +369,13 @@
     </div>
 </div>
 
+
+<a href="https://studio.paradisbend.com">
+    <p>
+        Fooble | Paradis Bend Studio
+    </p>
+</a>
+
 <style>
 
     h1,h2,p, .scoreTile{
@@ -331,6 +388,8 @@
         display: flex;
         flex-direction: row;
         width: 100%;
+        padding-bottom: 5em;
+        margin-bottom: 5em;
     }
 
     .fifty {
