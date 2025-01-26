@@ -8,6 +8,8 @@
 
     let checkGo = false;
 
+    let showRules = false;
+
     let start:boolean = false;
 
     let promptInput:string;
@@ -239,13 +241,19 @@
                 Welcome! This is a Foo(d)Bar Wordle-like game.  This project is an experiment working with Svelte and ScyllaDB.  At its current state its very low maintainance and I plan to support it for the forseable future.  If you know me, feel free to make suggestions for new features and improvements.  While shared primarily with some friends and family, all are welcome so feel free to challenge your friends to beat your score.
             </p>
 
-            <p class="prompt-text">
-                Rules: Find the food of the Day! Spelling is not checked. Squares turn black resulting in lost points when your guess is longer than the answer.  Spaces may be necessary.<br>
-                Green: +100<br>
-                Yellow: +50<br>
-                Black: -100<br>
-                Grey: 0
-            </p>
+            <button class="prompt-input" on:click={()=> showRules = !showRules}>
+                {#if showRules} 
+                    <p class="prompt-text">
+                        Rules: Find the food of the Day! Spelling is not checked. Squares turn black resulting in lost points when your guess is longer than the answer.  Spaces may be necessary.<br>
+                        Green: +100<br>
+                        Yellow: +50<br>
+                        Black: -100<br>
+                        Grey: 0
+                    </p>
+                {:else}
+                    <div class="prompt-text">Touch Here to See Rules</div>
+                {/if}
+                </button>
             
             <h1 class="prompt-text">Your Username</h1>
     
@@ -507,6 +515,8 @@
         border-radius: 10px;
         text-align: center;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-height: 70vh;
+        overflow-y: scroll;
     }
 
     .prompt-text {
