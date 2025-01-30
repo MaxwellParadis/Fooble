@@ -146,7 +146,7 @@
                     }                 
                 });
             }
-            if(!win) score = score/2;
+            if(win) score = Math.round(score*(1+((5*(6-line))/100)));
             line = line + 1;
             playing = false;
             let data = {
@@ -235,7 +235,10 @@
 {#if start === false}
     <div class="fullscreen-prompt">
         <div class="prompt-content">
-            <h1 class="prompt-text">FOOBLE BETA</h1>
+            <div class="footer">
+                <img style="height: 1.5em; margin: 1.7em 2px 2px 2px" src="/PBS_LOGO_NT.svg" alt="LOGO"/>
+                <h1 class="prompt-text">FOOBLE BETA</h1>
+            </div>
 
             <p class="prompt-text">
                 Welcome! This is a Foo(d)Bar Wordle-like game.  This project is an experiment working with Svelte and ScyllaDB.  At its current state its very low maintainance and I plan to support it for the forseable future.  If you know me, feel free to make suggestions for new features and improvements.  While shared primarily with some friends and family, all are welcome so feel free to challenge your friends to beat your score.
@@ -298,7 +301,8 @@
 {/if}
 
 {#if username != undefined || start == false}
-    <div class="body">
+    <div class="body" style="text-align: center">
+        <h2>FOOBLE</h2>
         <h2>Good Luck {username}!</h2>
     </div>
 {/if}
@@ -377,12 +381,14 @@
     </div>
 </div>
 
-
-<a href="https://studio.paradisbend.com">
-    <p>
-        Fooble | Paradis Bend Studio
-    </p>
-</a>
+<div class="footer">
+    <img style="height: 1rem; margin: 1rem 2px 2px 2px" src="/PBS_LOGO_NT.svg" alt="LOGO"/>
+    <a href="https://studio.paradisbend.com">
+        <p>
+            Paradis Bend Studio | Fooble
+        </p>
+    </a>
+</div>
 
 <style>
 
@@ -390,6 +396,15 @@
         font-family: "Roboto", sans-serif;
         text-align: center;
         color: white;
+    }
+
+    img{
+        box-shadow: 1px 1px 2rem rgba(255, 255, 255, 0.5);
+    }
+
+    .footer{
+        display: flex;
+        justify-content: center;
     }
 
     .scores {
