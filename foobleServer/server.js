@@ -10,6 +10,9 @@ const { sydb } = require('./db');
 const app = express();
 const port = 3000;
 
+let dailyWord = "PLACEHOLD";
+let pScore = [];
+
 app.use(express.static('dist'));
 app.use(express.json());
 
@@ -23,14 +26,11 @@ async function connectToScylla() {
   try {
     await client.connect();
     console.log("Connected to ScyllaDB");
-    sydb(client);
+    await sydb(client);
   } catch (err) {
     console.error("Failed to connect to ScyllaDB", err);
   }
 }
-
-connectToScylla();
-
 
 function getDay(add) {
   const date = new Date();
@@ -52,8 +52,23 @@ async function getWord(date) {
   return rows;
 }
 
+function getRandomNumber(excludedNumbers, max) {
+  const excludedSet = new Set(excludedNumbers);
+  let randNum;
+
+  do {
+    randNum = Math.floor(Math.random() * max);
+  } while (excludedSet.has(randNum));
+
+  return randNum;
+}
+
 async function makeWord(date) {
-  let randNum = Math.floor(Math.random() * words.length);
+  const eXquery = "SELECT indices FROM fooble.wordb;";
+  let {rows} = await client.execute(eXquery);
+  let usedWords = rows.map(row => row.indices);
+
+  let randNum = getRandomNumber(usedWords, words.length);  //Math.floor(Math.random() * words.length);
   let w = words[randNum];
   let ind = randNum;
   const query = "INSERT INTO fooble.wordb(day, word, indices) VALUES(?,?,?);";
@@ -63,15 +78,15 @@ async function makeWord(date) {
   await client.execute(query, params, options);
 }
 
-let dailyWord = "PLACEHOLD";
-let pScore = [];
-
 async function initWord() {
   let word = await getWord(getDay(0));
-  if(!word[0]) makeWord(getDay(0));
-  
+  if(!word[0]) {
+    await makeWord(getDay(0));
+    word = await getWord(getDay(0));
+  }
+
   let word1 = await getWord(getDay(1));
-  if(!word1[0]) makeWord(getDay(1));
+  if(!word1[0]) await makeWord(getDay(1));
     
   dailyWord = word[0].word;
   console.log(dailyWord);
@@ -90,19 +105,14 @@ async function prevScore(){
   }
 } 
 
+async function initServer(){
+  await connectToScylla();
 
-function wait(seconds) {
-  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
-}
-async function waiting() {
-  await wait(4);
   initWord();
+  prevScore();
 }
 
-waiting();
-
-initWord();
-prevScore();
+initServer();
 
 //DetermineDailyWord
 setInterval(() => {

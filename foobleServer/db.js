@@ -1,5 +1,5 @@
 //DB SETUP
-function sydb(client){
+async function sydb(client){
 
     let keyspace = "CREATE KEYSPACE IF NOT EXISTS fooble WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};";
     let users = "CREATE TABLE IF NOT EXISTS fooble.users (id UUID PRIMARY KEY, username TEXT, email TEXT);";
@@ -22,7 +22,7 @@ function sydb(client){
             }
         }
     }
-    executeQueries();   
+    await executeQueries();   
 }
 
 module.exports = { sydb };
