@@ -262,7 +262,7 @@
     
             <input
                 type="text"
-                maxlength="16"
+                maxlength="12"
                 placeholder="INPUT NAME HERE"
                 bind:value={promptInput}
                 class="prompt-input"
@@ -356,7 +356,7 @@
                 <div class='scoreTile'>
                     <div class="username">{sc.username}</div>
                     <div class="score">{sc.line}</div>
-                    <div class="score">{sc.score}</div>  
+                    <div class="score">{playing ? null : sc.score}</div>  
                 </div>
             {/each}
         </div>
@@ -374,7 +374,7 @@
                 <div class='scoreTile'>
                     <div class="username">{sc.username}</div>
                     <div class="score">{sc.line}</div>
-                    <div class="score">{sc.score}</div>  
+                    <div class="score">{playing ? null : sc.score}</div>  
                 </div>
             {/each}
         </div>
@@ -410,14 +410,17 @@
     .scores {
         display: flex;
         flex-direction: row;
+        flex-basis: auto;
         width: 100%;
         padding-bottom: 5em;
         margin-bottom: 5em;
+        justify-content: space-around;
     }
 
     .fifty {
+        display: flex;
+        flex-direction: column;
         text-align: center;
-        flex: 1;
     }
 
     .keyboard {
@@ -478,11 +481,11 @@
         flex-direction: row;
         width: 80vw;
         max-width: 12em;
-        justify-self: center;
     }
     .score {
-        flex-grow: 1;
+        
         text-align: right;
+        width: 30%;
     }
     .username {
         flex-grow: 3;

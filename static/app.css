@@ -10,6 +10,12 @@ body{
 
 button{
     background-color: #eee;
+    color: inherit; 
+    text-decoration: none; 
+    appearance: none;
+    -webkit-appearance: none;
+    user-select: none;
+    -webkit-user-select: none; 
 }
 
 button:disabled{
