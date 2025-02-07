@@ -350,7 +350,7 @@
             <div class='scoreTile underline'>
                 <div class="username">Player</div>
                 <div class="score">Try</div>
-                <div class="score">Score</div>  
+                <div class="score">{playing ? 'Hidden' : 'Score'}</div>  
             </div>
             {#each scoreboard as sc}
                 <div class='scoreTile'>
@@ -374,7 +374,7 @@
                 <div class='scoreTile'>
                     <div class="username">{sc.username}</div>
                     <div class="score">{sc.line}</div>
-                    <div class="score">{playing ? null : sc.score}</div>  
+                    <div class="score">{sc.score}</div>  
                 </div>
             {/each}
         </div>
