@@ -1,9 +1,9 @@
 const express = require("express");
-const cassandra = require("cassandra-driver");
+const mariadb = require("mariadb");
 const { v4: uuidv4 } = require('uuid');
 
 const { words } = require('./words');
-const { sydb } = require('./db');
+const { mdb } = require('./db');
 
 //const filterStringsByLength = require('./words');
 
@@ -16,21 +16,15 @@ let pScore = [];
 app.use(express.static('dist'));
 app.use(express.json());
 
-// ScyllaDB configuration
-const client = new cassandra.Client({
-  contactPoints: [process.env.SCYLLA_HOST || "localhost"],
-  localDataCenter: "datacenter1" // Replace with your data center name
-});
+require('dotenv').config();
 
-async function connectToScylla() {
-  try {
-    await client.connect();
-    console.log("Connected to ScyllaDB");
-    await sydb(client);
-  } catch (err) {
-    console.error("Failed to connect to ScyllaDB", err);
-  }
-}
+const pool = mariadb.createPool({
+  host: 'localhost',
+	database: process.env.DB,
+	user: process.env.DBU,
+  password: process.env.DBP,
+  connectionLimit: 5
+});
 
 function getDay(add) {
   const date = new Date();
@@ -43,13 +37,23 @@ function getDay(add) {
 }
 
 async function getWord(date) {
-  const query = "SELECT * FROM fooble.wordb WHERE day = ?";
-  const params = [date];
-  const options = {hints: ['int']};
+  let conn;
+  let words = [];
+  try{
+    conn = await pool.getConnection();
+    const query = "SELECT * FROM wordb WHERE day = ?";
+    const params = [date];
+    //const options = {hints: ['int']};
 
-  let {rows} = await client.execute(query, params, options);
-
-  return rows;
+    let rows = await conn.query(query, params);
+    words = rows;
+    console.log(words);
+  } catch (err) {
+    console.error("Database error:", err);
+  } finally {
+    if (conn) conn.release(); // use release() when using a pool
+    return words;
+  }
 }
 
 function getRandomNumber(excludedNumbers, max) {
@@ -64,18 +68,26 @@ function getRandomNumber(excludedNumbers, max) {
 }
 
 async function makeWord(date) {
-  const eXquery = "SELECT indices FROM fooble.wordb;";
-  let {rows} = await client.execute(eXquery);
-  let usedWords = rows.map(row => row.indices);
+  let conn;
+  try{
+    conn = await pool.getConnection();
+    const eXquery = "SELECT indices FROM wordb;";
+    let rows = await conn.query(eXquery);
+    let usedWords = rows.map(row => row.indices);
 
-  let randNum = getRandomNumber(usedWords, words.length);  //Math.floor(Math.random() * words.length);
-  let w = words[randNum];
-  let ind = randNum;
-  const query = "INSERT INTO fooble.wordb(day, word, indices) VALUES(?,?,?);";
-  const params = [date, w, ind];
-  const options = {hints: ['int', 'text', 'int']};
+    let randNum = getRandomNumber(usedWords, words.length);  //Math.floor(Math.random() * words.length);
+    let w = words[randNum];
+    let ind = randNum;
+    const query = "INSERT INTO wordb(day, word, indices) VALUES(?,?,?);";
+    const params = [date, w, ind];
+    //const options = {hints: ['int', 'text', 'int']};
 
-  await client.execute(query, params, options);
+    await conn.query(query, params);
+  } catch (err) {
+    console.error("Database error:", err);
+  } finally {
+    if (conn) conn.release(); // use release() when using a pool
+  }
 }
 
 async function initWord() {
@@ -87,26 +99,30 @@ async function initWord() {
 
   let word1 = await getWord(getDay(1));
   if(!word1[0]) await makeWord(getDay(1));
-    
+
   dailyWord = word[0].word;
   console.log(dailyWord);
 };
 
 async function prevScore(){
+  let conn;
   let day = getDay(-1);
-  let query = "SELECT * FROM fooble.beta_sbx WHERE day = ? ORDER BY score DESC LIMIT 10;";
+  let query = "SELECT * FROM sb1 WHERE day = ? ORDER BY score DESC LIMIT 10;";
   let params = [day];
-  let options = {hints: ['int']};
+  //let options = {hints: ['int']};
   try {
-    let {rows} = await client.execute(query, params, options);
+    conn = await pool.getConnection();
+    let rows = await conn.query(query, params);
     pScore = rows;
   } catch (err) {
     console.error('Prev Score Error:', err);
+  } finally {
+    if (conn) conn.release();
   }
-} 
+}
 
 async function initServer(){
-  await connectToScylla();
+  await mdb(pool);
 
   initWord();
   prevScore();
@@ -133,13 +149,15 @@ app.get("/api/word", (req, res) => {
     res.send(dailyWord);
 });
 
-app.get("/api/scoreboard", async (req, res) => { 
+app.get("/api/scoreboard", async (req, res) => {
+    let conn;
     let day = getDay(0);
-    let query = "SELECT * FROM fooble.beta_sbx WHERE day = ? ORDER BY score DESC LIMIT 10;";
+    let query = "SELECT * FROM sb1 WHERE day = ? ORDER BY score DESC LIMIT 10;";
     let params = [day];
-    let options = {hints: ['int']};
+    //let options = {hints: ['int']};
     try {
-      let {rows} = await client.execute(query, params, options);
+      conn = await pool.getConnection();
+      let rows = await conn.query(query, params);
       //console.log(rows);
       let data = {
         'today': rows,
@@ -150,27 +168,34 @@ app.get("/api/scoreboard", async (req, res) => {
       console.error('Write error:', err);
       console.log('Failed to write data');
       res.status(500).send("Failed to retrieve data: " + err.message);
+    } finally {
+      if (conn) conn.release();
     }
 });
 
 app.post("/api/score", async (req, res) => {
-    const { username, line, score } = req.body;
-    const id = uuidv4();
-    console.log(username, line, score);
-    let day = getDay(0);
-    let query = "INSERT INTO fooble.beta_sbx(id, username, email, day, line, score) VALUES(?,?,?,?,?,?)";
-    let params = [id, username, "NA", day, line, score];
-    let options = { hints: ['uuid', 'text', 'text', 'int', 'int', 'int'] };
-    try {
-      await client.execute(query, params, options);
-      console.log('Score written successfully');
-    } catch (err) {
-      console.error('Write error:', err);
-      console.log('Failed to write data');
-    }
+  let conn;
+  const { username, line, score } = req.body;
+  const id = uuidv4();
+  console.log(username, line, score);
+  let day = getDay(0);
+  let query = "INSERT INTO sb1(id, username, email, day, line, score) VALUES(?,?,?,?,?,?)";
+  let params = [id, username, "NA", day, line, score];
+  //let options = { hints: ['uuid', 'text', 'text', 'int', 'int', 'int'] };
+  try {
+    conn = await pool.getConnection();
+    await conn.query(query, params);
+    console.log('Score written successfully');
+  } catch (err) {
+    console.error('Write error:', err);
+    console.log('Failed to write data');
+  } finally {
+    if (conn) conn.release();
     res.send("Score Recorded");
+  }
 });
 
+/*
 app.get("/api/test", async (req, res) => {
   try {
     const query = "SELECT release_version FROM system.local";
@@ -180,6 +205,7 @@ app.get("/api/test", async (req, res) => {
     res.status(500).send(`Error querying ScyllaDB: ${err.message}`);
   }
 });
+*/
 
 app.listen(port, () => {
   console.log(`App running at http://localhost:${port}`);
