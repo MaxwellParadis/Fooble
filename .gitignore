@@ -2,7 +2,7 @@ node_modules
 
 foobleServer/data
 
-
+*dist
 
 # Output
 .output
