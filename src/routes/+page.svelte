@@ -241,7 +241,7 @@
             </div>
 
             <p class="prompt-text">
-                Welcome! This is a Foo(d)Bar Wordle-like game.  This project is an experiment working with Svelte and ScyllaDB.  At its current state its very low maintainance and I plan to support it for the forseable future.  If you know me, feel free to make suggestions for new features and improvements.  While shared primarily with some friends and family, all are welcome so feel free to challenge your friends to beat your score.
+                Welcome! This is a Foo(d)Bar Wordle-like game.  This project started as an experiment working with Svelte and ScyllaDB.  We recently experienced an SSD failure so word history is reset and Scylla is no longer used.  If you know me, feel free to make suggestions for new features and improvements.  While shared primarily with some friends and family, all are welcome so feel free to challenge your friends to beat your score.
             </p>
 
             <button class="prompt-input" on:click={()=> showRules = !showRules}>
