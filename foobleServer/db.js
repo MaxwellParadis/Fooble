@@ -1,7 +1,7 @@
 //DB SETUP
 async function mdb(pool){
 
-    //let keyspace = "CREATE KEYSPACE IF NOT EXISTS fooble WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};";
+    let db = "CREATE DATABASE IF NOT EXISTS fooble;";
     let users = "CREATE TABLE IF NOT EXISTS users (id CHAR(36) PRIMARY KEY, username VARCHAR(20), email VARCHAR(99));";
     let sb = "CREATE TABLE IF NOT EXISTS sb1 (id CHAR(36) PRIMARY KEY, username VARCHAR(20), email VARCHAR(99), day INT, line INT, score INT);";
     let words = "CREATE TABLE IF NOT EXISTS wordb (day INT PRIMARY KEY, word VARCHAR(21), indices INT);";
@@ -9,7 +9,7 @@ async function mdb(pool){
 
 
 
-    let queries = [ users, words, sb ];
+    let queries = [ db, users, words, sb ];
 
     async function executeQueries() {
       let conn;
