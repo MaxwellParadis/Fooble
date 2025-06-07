@@ -1,10 +1,10 @@
 //DB SETUP
-async function mdb(pool){
+async function mdb(pool, dbn){
 
-    let db = "CREATE DATABASE IF NOT EXISTS fooble;";
-    let users = "CREATE TABLE IF NOT EXISTS users (id CHAR(36) PRIMARY KEY, username VARCHAR(20), email VARCHAR(99));";
-    let sb = "CREATE TABLE IF NOT EXISTS sb1 (id CHAR(36) PRIMARY KEY, username VARCHAR(20), email VARCHAR(99), day INT, line INT, score INT);";
-    let words = "CREATE TABLE IF NOT EXISTS wordb (day INT PRIMARY KEY, word VARCHAR(21), indices INT);";
+    let db = `CREATE DATABASE IF NOT EXISTS ${dbn};`;
+    let users = `CREATE TABLE IF NOT EXISTS ${dbn}.users (id CHAR(36) PRIMARY KEY, username VARCHAR(20), email VARCHAR(99));`;
+    let sb = `CREATE TABLE IF NOT EXISTS ${dbn}.sb1 (id CHAR(36) PRIMARY KEY, username VARCHAR(20), email VARCHAR(99), day INT, line INT, score INT);`;
+    let words = `CREATE TABLE IF NOT EXISTS ${dbn}.wordb (day INT PRIMARY KEY, word VARCHAR(21), indices INT);`;
     //let working = "CREATE INDEX ON fooble.beta_score0 (username);"
 
 

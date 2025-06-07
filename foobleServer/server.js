@@ -17,11 +17,11 @@ app.use(express.static('dist'));
 app.use(express.json());
 
 require('dotenv').config();
+const dbn = process.env.FDB || 'fooble';
 
 const pool = mariadb.createPool({
-  host: 'localhost',
-	database: process.env.DB,
-	user: process.env.DBU,
+  host: process.env.DBH,	
+  user: process.env.DBU || 'root',
   password: process.env.DBP,
   connectionLimit: 5
 });
@@ -41,7 +41,7 @@ async function getWord(date) {
   let words = [];
   try{
     conn = await pool.getConnection();
-    const query = "SELECT * FROM wordb WHERE day = ?";
+    const query = `SELECT * FROM ${dbn}.wordb WHERE day = ?`;
     const params = [date];
     //const options = {hints: ['int']};
 
@@ -71,14 +71,14 @@ async function makeWord(date) {
   let conn;
   try{
     conn = await pool.getConnection();
-    const eXquery = "SELECT indices FROM wordb;";
+    const eXquery = `SELECT indices FROM ${dbn}.wordb;`;
     let rows = await conn.query(eXquery);
     let usedWords = rows.map(row => row.indices);
 
     let randNum = getRandomNumber(usedWords, words.length);  //Math.floor(Math.random() * words.length);
     let w = words[randNum];
     let ind = randNum;
-    const query = "INSERT INTO wordb(day, word, indices) VALUES(?,?,?);";
+    const query = `INSERT INTO ${dbn}.wordb(day, word, indices) VALUES(?,?,?);`;
     const params = [date, w, ind];
     //const options = {hints: ['int', 'text', 'int']};
 
@@ -107,7 +107,7 @@ async function initWord() {
 async function prevScore(){
   let conn;
   let day = getDay(-1);
-  let query = "SELECT * FROM sb1 WHERE day = ? ORDER BY score DESC LIMIT 10;";
+  let query = `SELECT * FROM ${dbn}.sb1 WHERE day = ? ORDER BY score DESC LIMIT 10;`;
   let params = [day];
   //let options = {hints: ['int']};
   try {
@@ -122,7 +122,7 @@ async function prevScore(){
 }
 
 async function initServer(){
-  await mdb(pool);
+  await mdb(pool,dbn);
 
   initWord();
   prevScore();
@@ -152,7 +152,7 @@ app.get("/api/word", (req, res) => {
 app.get("/api/scoreboard", async (req, res) => {
     let conn;
     let day = getDay(0);
-    let query = "SELECT * FROM sb1 WHERE day = ? ORDER BY score DESC LIMIT 10;";
+    let query = `SELECT * FROM ${dbn}.sb1 WHERE day = ? ORDER BY score DESC LIMIT 10;`;
     let params = [day];
     //let options = {hints: ['int']};
     try {
@@ -179,7 +179,7 @@ app.post("/api/score", async (req, res) => {
   const id = uuidv4();
   console.log(username, line, score);
   let day = getDay(0);
-  let query = "INSERT INTO sb1(id, username, email, day, line, score) VALUES(?,?,?,?,?,?)";
+  let query = `INSERT INTO ${dbn}.sb1(id, username, email, day, line, score) VALUES(?,?,?,?,?,?);`;
   let params = [id, username, "NA", day, line, score];
   //let options = { hints: ['uuid', 'text', 'text', 'int', 'int', 'int'] };
   try {
