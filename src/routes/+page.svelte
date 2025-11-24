@@ -241,8 +241,8 @@
             </div>
 
             <p class="prompt-text">
-                Welcome! This is a Foo(d)Bar Wordle-like game.  This project started as an experiment working with Svelte and ScyllaDB.  We recently experienced an SSD failure so word history is reset and Scylla is no longer used.  If you know me, feel free to make suggestions for new features and improvements.  While shared primarily with some friends and family, all are welcome so feel free to challenge your friends to beat your score.
-            </p>
+           	Welcome! And Happy Holidays! This is a Foo(d)Bar Wordle-like game. Through the holiday season there will be a pool of Christmas theamed words. Feel free to share and challenge your friends to beat your score each day!
+	     </p>
 
             <button class="prompt-input" on:click={()=> showRules = !showRules}>
                 {#if showRules} 
@@ -272,9 +272,11 @@
             </button>
 
             <a href="https://studio.paradisbend.com">
+                <img style="height: 5em; margin: 1.7em 2px 2px 2px" src="/XMAS.svg" alt="LOGO"/>
                 <p class="prompt-text">
                     Created By Paradis Bend Studio
                 </p>
+                <img style="height: 5em; margin: 1.7em 2px 2px 2px" src="/XMAS.svg" alt="LOGO"/>
             </a>
         </div>
     </div>
