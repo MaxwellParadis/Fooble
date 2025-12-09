@@ -2,7 +2,15 @@
     import { onMount } from 'svelte';
     import axios from "axios";
 
+    let authAPI = "https://authserver.paradisbend.com"
+
     let username:string = '';
+
+    let userAuth = {hasAuth: false};
+
+    let anonymous = true; 
+    let signup = false;
+    let help = false;
 
     let endKnown = false;
 
@@ -12,9 +20,14 @@
 
     let start:boolean = false;
 
-    let promptInput:string;
+    let promptInput:string = "";
+    let password:string = "";
+    let message:string;
+    let vpass:string = "";
+    let email:string = "";
 
     let score:number = 0;
+    let streak:number = 0;
 
     let scoreboard:any[] = [];
     let pscoreboard:any[] = [];
@@ -45,7 +58,127 @@
         };
         //console.log(cacheGame.daily.join(''), daily.join(''));
     }
+
+
+     async function onSignup(uname) {
+        username = uname
+        try {
+        const res = await axios.post(`${authAPI}/signup`, {
+            username,
+            email,
+            password
+        });
+        signup = false;
+        message = res.data.message;
+        } catch (err) {
+        message = err.response?.data?.error || "Signup failed";
+        }
+    }
     
+    async function onLogin(uname) {
+        username = uname
+        try {
+            const res = await axios.post(`${authAPI}/login`, {
+                username,
+                password
+            });
+
+            // Save tokens
+            localStorage.setItem("accessToken", res.data.accessToken);
+            localStorage.setItem("refreshToken", res.data.refreshToken);
+
+            userAuth.accessToken = res.data.accessToken;
+            userAuth.hasAuth = true;
+
+            message = "Logged in!";
+
+            const streakRes = await axios.post('/api/streak', { username }, {
+                validateStatus: () => true
+            });
+
+            if (streakRes.status === 200) streak = Number(streakRes.data.streak);
+
+            onEnter(username)
+        } catch (err) {
+            message =  err.response?.data?.error || "Login failed";
+        }
+    }
+
+   async function authCheck(setup = false) {
+        // 1. Protected request (never throws for HTTP errors)
+        const res = await axios.get(`${authAPI}/protected`, {
+            headers: { Authorization: "Bearer " + userAuth.accessToken },
+            validateStatus: () => true
+        });
+
+        //console.log(res);
+        let success = (res.status === 200);
+
+        if (res.status === 401 || res.status === 403) {
+            const refresh = await axios.post(`${authAPI}/refresh`, {token: localStorage.getItem("refreshToken")}, {
+                validateStatus: () => true
+            });
+
+            if (refresh.status === 200) {
+                const newAccess = refresh.data.accessToken;
+                localStorage.setItem("accessToken", newAccess);
+                userAuth.accessToken = newAccess;
+                success = true
+            }else{
+                message = 'Session Expired!'
+                onLogout();
+                console.log(refresh);
+            }
+        }
+
+        if(success){
+            console.log(res.data)
+            userAuth.username = res.data.user?.username || '';
+            userAuth.hasAuth = true;
+            username = userAuth.username;
+
+            const streakRes = await axios.post('/api/streak', { username }, {
+                validateStatus: () => true
+            });
+
+            if (streakRes.status === 200) streak = Number(streakRes.data.streak);
+        }
+
+        if (setup) gameSetup();
+    }
+
+    async function onReVer() {
+        try {
+        const res = await axios.post(`${authAPI}/reverify`, {
+            email,
+        });
+        message = res.data.message;
+        } catch (err) {
+        message = err.response?.data?.error || "Verification failed";
+        }
+    }
+
+    async function onNewPass() {
+        try {
+        let newPassword = password
+        const res = await axios.post(`${authAPI}/request-reset`, {
+            email,
+            newPassword
+        });
+        message = res.data.message;
+        } catch (err) {
+        message = err.response?.data?.error || "Password Reset failed";
+        }
+    }
+
+    function onLogout(){
+        localStorage.setItem("accessToken", null);
+        localStorage.setItem("refreshToken", null);
+        userAuth = {}
+        userAuth.hasAuth = false;
+        username = ''
+        promptInput = username;
+    }
 
     axios.get('/api/scoreboard').then((res) => {
         scoreboard = res.data.today;
@@ -147,6 +280,8 @@
                 });
             }
             if(win) score = Math.round(score*(1+((5*(6-line))/100)));
+            if(win) streak = streak + 1;
+            score = score + streak;
             line = line + 1;
             playing = false;
             let data = {
@@ -225,9 +360,14 @@
 
     onMount(() => { 
         username = localStorage.getItem('username') || '';
-        if(username.length > 2) promptInput = username;
+        userAuth.accessToken = localStorage.getItem('accessToken') || null;
 
-        gameSetup();
+        if(userAuth.accessToken !== null && userAuth.accessToken.length > 4) {
+            authCheck(true);
+        } else {
+            if(username.length > 2) promptInput = username;
+            gameSetup();
+        }
     });
 
 </script>
@@ -237,46 +377,120 @@
         <div class="prompt-content">
             <div class="footer">
                 <img style="height: 1.5em; margin: 1.7em 2px 2px 2px" src="/PBS_LOGO_NT.svg" alt="LOGO"/>
-                <h1 class="prompt-text">FOOBLE BETA</h1>
+                <h1 class="prompt-text">FOOBLE</h1>
             </div>
 
             <p class="prompt-text">
-           	Welcome! And Happy Holidays! This is a Foo(d)Bar Wordle-like game. Through the holiday season there will be a pool of Christmas theamed words. Feel free to share and challenge your friends to beat your score each day!
+           	Welcome! And Happy Holidays! This is a Foo-Bar Wordle-like game. Through the holiday season there will be a pool of Christmas themed words. Feel free to share and challenge your friends to beat your score each day!  Create an account and login to build streak bonus points!
 	     </p>
 
             <button class="prompt-input" on:click={()=> showRules = !showRules}>
                 {#if showRules} 
                     <p class="prompt-text">
-                        Rules: Find the food of the Day! Spelling is not checked. Squares turn black resulting in lost points when your guess is longer than the answer.  Spaces may be necessary.<br>
+                        Rules: Solve the daily puzzle! Spelling is not checked. Squares turn black resulting in lost points when your guess is longer than the answer.  Spaces may be necessary.<br>
                         Green: +100<br>
                         Yellow: +50<br>
                         Black: -100<br>
-                        Grey: 0
+                        Grey: 0 <br>
+                        Streak Bonus Points: Get bonus points equal to the length of your current streak!
                     </p>
                 {:else}
                     <div class="prompt-text">Touch Here to See Rules</div>
                 {/if}
                 </button>
-            
-            <h1 class="prompt-text">Your Username</h1>
-    
-            <input
-                type="text"
-                maxlength="12"
-                placeholder="INPUT NAME HERE"
-                bind:value={promptInput}
-                class="prompt-input"
-            />
-            <button disabled={promptInput == undefined || promptInput.length < 3} class="prompt-input prompt-button" on:click={() => onEnter(promptInput)}>
-                ENTER
-            </button>
 
-            <a href="https://studio.paradisbend.com">
-                <img style="height: 5em; margin: 1.7em 2px 2px 2px" src="/XMAS.svg" alt="LOGO"/>
-                <p class="prompt-text">
-                    Created By Paradis Bend Studio
-                </p>
-                <img style="height: 5em; margin: 1.7em 2px 2px 2px" src="/XMAS.svg" alt="LOGO"/>
+            {#if !userAuth.hasAuth}
+                <button class='prompt-input' on:click={()=> anonymous = !anonymous}>
+                    <h1 class="prompt-text">{anonymous ? 'Click for Login' : 'Play with #Username'}</h1>
+                </button>
+            {/if}
+
+            {#if anonymous && !userAuth.hasAuth}
+                <input
+                    type="text"
+                    maxlength="12"
+                    placeholder="INPUT NAME HERE"
+                    bind:value={promptInput}
+                    class="prompt-input"
+                />
+                <button disabled={promptInput == undefined || promptInput.length < 3} class="prompt-input prompt-button" on:click={() => onEnter('#' + promptInput.replace(/[^A-Za-z0-9]/g, ""))}>
+                    ENTER
+                </button>
+            {:else if userAuth.hasAuth}
+                <button class="prompt-input prompt-button" on:click={() => onLogout()}>
+                    Logout
+                </button>
+                <button class="prompt-input prompt-button" on:click={() => onEnter(userAuth.username)}>
+                    Play as {userAuth.username}
+                </button>
+                <h4 style="color: rgb(40,60,80)">{streak > 0 ? `${streak} Day Streak!`: null}</h4>
+            {:else}
+                <button class='prompt-input' on:click={() => {signup = !signup; help = false}}>
+                    <b style="color: rgb(40,60,80)">{ signup ? 'Go to Login!' : 'Sign Up!'}</b>
+                </button>
+
+                <input
+                    type="text"
+                    maxlength="12"
+                    placeholder="INPUT USERNAME"
+                    bind:value={promptInput}
+                    class="prompt-input"
+                />
+                <input
+                    type="password"
+                    maxlength="24"
+                    placeholder="PASSWORD"
+                    bind:value={password}
+                    class="prompt-input"
+                />
+                {#if signup}
+                    <input
+                        type="password"
+                        maxlength="24"
+                        placeholder="CONFIRM PASSWORD"
+                        bind:value={vpass}
+                        class={password == vpass ? "prompt-input" : "rborder prompt-input"}
+                    />
+                    <input
+                        type="text"
+                        maxlength="254"
+                        placeholder="INPUT EMAIL"
+                        bind:value={email}
+                        class="prompt-input"
+                    />
+                {/if}
+                {#if !help}
+                    <button disabled={promptInput.length < 3 || (vpass !== password && signup) || password == 0 || (email < 4 && signup)} class="prompt-input prompt-button" on:click={() => (signup ? onSignup : onLogin)(promptInput.replace(/[^A-Za-z0-9]/g, ""))}>
+                        { signup ? 'SUBMIT' : 'LOGIN'}
+                    </button>
+                {/if}
+                <button class='prompt-input' on:click={() => {help = !help; signup = true;}}>
+                    <b style="color: rgb(40,60,80);">{help ? 'Hide' : 'Show'} Sign up & Login help!</b>
+                </button>
+
+                {#if help && signup}
+                    <b style="color: rgb(40,60,80)">Please Enter your email above to request a new Verification Link.</b>
+                    <br>
+                    <button disabled={email < 4} class='prompt-input prompt-button' on:click={onReVer}>
+                        <b>Resend Verification Email</b>
+                    </button>
+                    <b style="color: rgb(40,60,80)">To Update your Password, Please complete fields above and approve the change in the following email verification</b>
+                    <br>
+                    <button disabled={(vpass !== password) || password == 0 || (email < 4)} class='prompt-input prompt-button' on:click={onNewPass} >
+                        <b>Update Password</b>
+                    </button>
+                {/if}
+
+            {/if}
+            <h4 style="color: rgb(40,60,80)">
+            {message} <br>
+            {message == 'User created' ? `Click the Verification link sent to ${email} then login!` : null}
+            </h4>
+
+            <a href="https://studio.paradisbend.com" class="footer">
+                <img style="height: 3em" src="/XMAS.svg" alt="LOGO"/>
+                <p class="prompt-text">Created By Paradis Bend Studio</p>
+                <img style="height: 3em" src="/XMAS.svg" alt="LOGO"/>
             </a>
         </div>
     </div>
@@ -303,9 +517,12 @@
 {/if}
 
 {#if username != undefined || start == false}
-    <div class="body" style="text-align: center">
-        <h2>FOOBLE</h2>
-        <h2>Good Luck {username}!</h2>
+    <div class="header" style="text-align: center">
+        <div class="footer">
+            <img style="height: 2.9em; margin: 1em 2px 0px 0px;" src="/PBS_LOGO_NT.svg" alt="LOGO"/>
+            <h1 style="transform: scaleY(2); display: inline-block;">FOOBLE</h1>
+        </div>
+        <h3 style="margin: .5em">Good Luck {username}!</h3>
     </div>
 {/if}
 
@@ -344,6 +561,10 @@
             <button class="key grow" disabled={!playing || fooble[line].length < 1} on:click={() => (endKnown ? goCheck() : onGo()) }>Submit</button>
         </div>
 </div>
+
+{#if userAuth && userAuth.hasAuth == true}
+    <h2>{username}'s Current Streak: {streak}</h2>
+{/if}
 
 <div class='scores'>
     <div class="fifty">
@@ -394,14 +615,18 @@
 
 <style>
 
-    h1,h2,p, .scoreTile{
+    h1,h2,h3,h4,b,p, .scoreTile{
         font-family: "Roboto", sans-serif;
         text-align: center;
         color: white;
     }
 
-    img{
-        box-shadow: 1px 1px 2rem rgba(255, 255, 255, 0.5);
+
+
+    .header{
+        background-color: rgba(0,0,0,.5);
+        border:1px solid rgba(0,0,0,.5);
+        margin-bottom: 4px;
     }
 
     .footer{
@@ -564,6 +789,10 @@
 
     .overgap {
         padding-top: 2rem;
+    }
+    .rborder {
+        border:1px solid red;
+        color: red
     }
 
 </style>

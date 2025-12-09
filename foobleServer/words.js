@@ -94,10 +94,10 @@ const words = [
   "EVE",
   "BOXING DAY",
   "PARTRIDGE",
-  "TURTLE DOVE",
+  "TURTLEDOVE",
   "FRENCH HEN",
-  "CALLING BIRD",
-  "GOLDEN RING",
+  "CALLINGBIRD",
+  "GOLDENRING",
   "CHRISTMAS"
 ];
 
